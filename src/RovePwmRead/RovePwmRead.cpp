@@ -41,10 +41,16 @@ void RovePwmRead::start() //////////////////////////////////////////////////////
     GPIOPinTypeTimer(         this->Ccp.Hardware.PORT_BASE_ADDRESS, 
                               this->Ccp.Hardware.PIN_BIT_MASK); // move to a Gpio struct?
     GPIOPinConfigure(         this->Ccp.Hardware.CCP_PIN_MUX );
+    
+    uint32_t TIMER_CHANNEL_AB;
+    if ( ( this->Ccp.timer %  2) == 0 ){ TIMER_CHANNEL_AB = TIMER_B; }
+    else                               { TIMER_CHANNEL_AB = TIMER_A; }
+                   
     roveware::configureTimer( roveware::TIMER_USE_PIOSC,
                               roveware::TIMER_USE_CAPTURE_TICKS_AB,
                               this->Ccp.Timer.Hardware.TIMER_PERIPHERAL,
-                              this->Ccp.Timer.Hardware.TIMER_BASE_ADDRESS );
+                              this->Ccp.Timer.Hardware.TIMER_BASE_ADDRESS, 
+                              TIMER_CHANNEL_AB );
     TimerControlEvent(        this->Ccp.Timer.Hardware.TIMER_BASE_ADDRESS,
                               this->Ccp.Timer.Hardware.TIMER_CHANNEL_AB,
                               TIMER_EVENT_BOTH_EDGES);
@@ -65,8 +71,17 @@ void RovePwmRead::stop() ///////////////////////////////////////////////////////
   {    roveware::stopTimer(    this->Ccp.Timer.Hardware.TIMER_BASE_ADDRESS, this->Ccp.Timer.interrupt_source ); }
 }
 
-void wireBreakTimeout() ////////
-{ roveware::ccpIsrWireBreak(); }
+bool  RovePwmRead::isWireBroken( ) ////////////////////////////////////////
+{ return roveware::isCcpWireBroken( roveware::pinToTimer( this->pin ) ); }
 
-bool isWireBroken( int pin ) ///////////////////////////////////////
-{ return roveware::isCcpWireBroken( roveware::pinToTimer( pin ) ); }
+int RovePwmRead::readWidth( ) ///
+{ return Ccp.PulseWidths.avg(); }
+
+int RovePwmRead::readPeriod( ) ///
+{ return Ccp.PulsePeriods.avg(); }
+
+////////////////////////////////
+
+void rovePwmReadIsrWireBreak() //
+{  roveware::ccpIsrWireBreak(); }
+

@@ -8,6 +8,14 @@
 #include "stdint.h"
 #include "driverlib/timer.h"
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Todo...Note: These two should be TivaWare functions... but were never implemented by the TivaWare DriverLib team => TimerValueGet returned a 16 bit timer, not the full 24 bit timer, TimerConfigure stomps on sthe other half AB timer
+// Comme on TI wtf...
+
+uint32_t TimerValueGet24(    uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB );
+void     TimerConfigure16AB( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB, uint32_t TIMER_CONFIGURE );
+
+
 namespace roveware /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 {
   enum  timer_clock_source_t { TIMER_USE_SYSCLOCK=0, 
@@ -18,8 +26,6 @@ namespace roveware /////////////////////////////////////////////////////////////
 
   static const uint32_t TIMER_USE_PERIODIC_UP_AB                = ( TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC_UP | TIMER_CFG_B_PERIODIC_UP );
   static const uint32_t TIMER_USE_CAPTURE_TICKS_AB              = ( TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_CAP_TIME    | TIMER_CFG_B_CAP_TIME    );
-  static const uint32_t TIMER_USE_PERIODIC_UP_A_CAPTURE_TICKS_B = ( TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC_UP | TIMER_CFG_B_CAP_TIME    );
-  static const uint32_t TIMER_USE_CAPTURE_TICKS_A_PERIODIC_UP_B = ( TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_CAP_TIME    | TIMER_CFG_B_PERIODIC_UP );
 
   struct TimerHardware //////////////////
   {
@@ -65,14 +71,10 @@ namespace roveware /////////////////////////////////////////////////////////////
   isrPtr               timerIsrPeriodic( int timer );
   struct TimerHardware timerHardware (   int timer );
 
-  void configureTimer( uint32_t TIMER_CLOCK_SOURCE, uint32_t TIMER_CONFIGURE,  uint32_t TIMER_PERIPHERAL,       uint32_t TIMER_BASE_ADDRESS );
+  void configureTimer( uint32_t TIMER_CLOCK_SOURCE, uint32_t TIMER_CONFIGURE,  uint32_t TIMER_PERIPHERAL,       uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB );
   void attachTimerIsr( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB, uint32_t TIMER_INTERRUPT_SOURCE, uint32_t TIMER_INTERRUPT, void(*timerIsr)(void), uint8_t priority );
   void startTimer(     uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB, uint32_t TIMER_INTERRUPT_SOURCE, uint32_t TIMER_PERIOD_TICKS_24 );
   void stopTimer(      uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_INTERRUPT_SOURCE );
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Todo...Note: This function was never implemented by the TivaWare DriverLib team for some reason, TimerValueGet returns a 16 bit timer, not the full 24 bit timer
-  uint32_t TimerValueGet24( uint32_t timer_base, uint32_t timer_channel_ab );
 
 }// end namespace roveware ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

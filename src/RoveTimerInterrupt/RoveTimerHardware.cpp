@@ -33,32 +33,58 @@
 
 #include "stdint.h"
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Todo...Note: These two should be TivaWare functions... but were never implemented by the TivaWare DriverLib team => TimerValueGet returned a 16 bit timer, not the full 24 bit timer, TimerConfigure stomps on sthe other half AB timer
+// Comme on TI wtf...
+
+uint32_t TimerValueGet24( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB ) 
+{ 
+  if (       TIMER_CHANNEL_AB == TIMER_A ) { return (uint32_t)( HWREG( TIMER_BASE_ADDRESS + TIMER_O_TAR ) + ( HWREG( TIMER_BASE_ADDRESS + TIMER_O_TAPS ) << 16 ) ); } 
+  else if (  TIMER_CHANNEL_AB == TIMER_B ) { return (uint32_t)( HWREG( TIMER_BASE_ADDRESS + TIMER_O_TBR ) + ( HWREG( TIMER_BASE_ADDRESS + TIMER_O_TBPS ) << 16 ) ); } 
+}
+
+void TimerConfigure16AB( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB, uint32_t TIMER_CONFIGURE )
+{
+  if(      TIMER_CHANNEL_AB == TIMER_A ) 
+  { 
+    HWREG(TIMER_BASE_ADDRESS + TIMER_O_CTL) &= ~(TIMER_CTL_TAEN);
+    HWREG(TIMER_BASE_ADDRESS + TIMER_O_CFG) =    TIMER_CFG_SPLIT_PAIR >> 24;
+    HWREG(TIMER_BASE_ADDRESS + TIMER_O_TAMR) = (((TIMER_CONFIGURE & 0x000f0000) >> 4) |  (TIMER_CONFIGURE       & 0xff) | TIMER_TAMR_TAPWMIE); }
+    
+  else if( TIMER_CHANNEL_AB == TIMER_B ) 
+  { 
+    HWREG(TIMER_BASE_ADDRESS + TIMER_O_CTL) &= ~(TIMER_CTL_TBEN);
+    HWREG(TIMER_BASE_ADDRESS + TIMER_O_CFG) =    TIMER_CFG_SPLIT_PAIR >> 24;
+    HWREG(TIMER_BASE_ADDRESS + TIMER_O_TBMR) = (((TIMER_CONFIGURE & 0x00f00000) >> 8) | ((TIMER_CONFIGURE >> 8) & 0xff) | TIMER_TBMR_TBPWMIE); 
+  }
+}
+  
 namespace roveware /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 {
   struct Timer* Timers[16] = {};
 
-  void timerIsrPeriodic_0A ( void ) { dispatchTimerIsrPeriodic( Timers[ T0_A ] ); }
-  void timerIsrPeriodic_0B ( void ) { dispatchTimerIsrPeriodic( Timers[ T0_B ] ); }
-  void timerIsrPeriodic_1A ( void ) { dispatchTimerIsrPeriodic( Timers[ T1_A ] ); }
-  void timerIsrPeriodic_1B ( void ) { dispatchTimerIsrPeriodic( Timers[ T1_B ] ); }
-  void timerIsrPeriodic_2A ( void ) { dispatchTimerIsrPeriodic( Timers[ T2_A ] ); }
-  void timerIsrPeriodic_2B ( void ) { dispatchTimerIsrPeriodic( Timers[ T2_B ] ); }
-  void timerIsrPeriodic_3A ( void ) { dispatchTimerIsrPeriodic( Timers[ T3_A ] ); }
-  void timerIsrPeriodic_3B ( void ) { dispatchTimerIsrPeriodic( Timers[ T3_B ] ); }
-  void timerIsrPeriodic_4A ( void ) { dispatchTimerIsrPeriodic( Timers[ T4_A ] ); }
-  void timerIsrPeriodic_4B ( void ) { dispatchTimerIsrPeriodic( Timers[ T4_B ] ); }
-  void timerIsrPeriodic_5A ( void ) { dispatchTimerIsrPeriodic( Timers[ T5_A ] ); }
-  void timerIsrPeriodic_5B ( void ) { dispatchTimerIsrPeriodic( Timers[ T5_B ] ); }
-  void timerIsrPeriodic_6A ( void ) { dispatchTimerIsrPeriodic( Timers[ T6_A ] ); }
-  void timerIsrPeriodic_6B ( void ) { dispatchTimerIsrPeriodic( Timers[ T6_B ] ); }
-  void timerIsrPeriodic_7A ( void ) { dispatchTimerIsrPeriodic( Timers[ T7_A ] ); }
-  void timerIsrPeriodic_7B ( void ) { dispatchTimerIsrPeriodic( Timers[ T7_B ] ); }
+  void timerIsrPeriodic_0A ( void ) { dispatchTimerIsrPeriodic( Timers[ T0_A - 1 ] ); }
+  void timerIsrPeriodic_0B ( void ) { dispatchTimerIsrPeriodic( Timers[ T0_B - 1 ] ); }
+  void timerIsrPeriodic_1A ( void ) { dispatchTimerIsrPeriodic( Timers[ T1_A - 1 ] ); }
+  void timerIsrPeriodic_1B ( void ) { dispatchTimerIsrPeriodic( Timers[ T1_B - 1 ] ); }
+  void timerIsrPeriodic_2A ( void ) { dispatchTimerIsrPeriodic( Timers[ T2_A - 1 ] ); }
+  void timerIsrPeriodic_2B ( void ) { dispatchTimerIsrPeriodic( Timers[ T2_B - 1 ] ); }
+  void timerIsrPeriodic_3A ( void ) { dispatchTimerIsrPeriodic( Timers[ T3_A - 1 ] ); }
+  void timerIsrPeriodic_3B ( void ) { dispatchTimerIsrPeriodic( Timers[ T3_B - 1 ] ); }
+  void timerIsrPeriodic_4A ( void ) { dispatchTimerIsrPeriodic( Timers[ T4_A - 1 ] ); }
+  void timerIsrPeriodic_4B ( void ) { dispatchTimerIsrPeriodic( Timers[ T4_B - 1 ] ); }
+  void timerIsrPeriodic_5A ( void ) { dispatchTimerIsrPeriodic( Timers[ T5_A - 1 ] ); }
+  void timerIsrPeriodic_5B ( void ) { dispatchTimerIsrPeriodic( Timers[ T5_B - 1 ] ); }
+  void timerIsrPeriodic_6A ( void ) { dispatchTimerIsrPeriodic( Timers[ T6_A - 1 ] ); }
+  void timerIsrPeriodic_6B ( void ) { dispatchTimerIsrPeriodic( Timers[ T6_B - 1 ] ); }
+  void timerIsrPeriodic_7A ( void ) { dispatchTimerIsrPeriodic( Timers[ T7_A - 1 ] ); }
+  void timerIsrPeriodic_7B ( void ) { dispatchTimerIsrPeriodic( Timers[ T7_B - 1 ] ); }
 
   bool isTimerValid( int timer ) 
   {          return (    timer >  INVALID ) and ( timer <= MAX_TIMER); }
 
   void attachTimer( int timer, struct Timer* Timer ) 
-  {            Timers [ timer ]     = Timer; }
+  {            Timers [ timer - 1 ] = Timer; }
 
   void dispatchTimerIsrPeriodic( struct Timer* Timer )////////////////////////////
   {
@@ -74,13 +100,21 @@ namespace roveware /////////////////////////////////////////////////////////////
  void configureTimer( uint32_t TIMER_CLOCK_SOURCE,
                       uint32_t TIMER_CONFIGURE,
                       uint32_t TIMER_PERIPHERAL,
-                      uint32_t TIMER_BASE_ADDRESS )
+                      uint32_t TIMER_BASE_ADDRESS,
+                      uint32_t TIMER_CHANNEL_AB )
   {
             SysCtlPeripheralEnable( TIMER_PERIPHERAL );
     while( !SysCtlPeripheralReady(  TIMER_PERIPHERAL ) )
     {   }; 
     TimerClockSourceSet( TIMER_BASE_ADDRESS, TIMER_CLOCK_SOURCE );
-    TimerConfigure(      TIMER_BASE_ADDRESS, TIMER_CONFIGURE );
+    
+    if ( TIMER_CHANNEL_AB == TIMER_BOTH )
+    {
+       TimerConfigure(    TIMER_BASE_ADDRESS, TIMER_CONFIGURE ); // configure a and b at the same time
+       
+    } else {
+      TimerConfigure16AB(  TIMER_BASE_ADDRESS, TIMER_CHANNEL_AB, TIMER_CONFIGURE ); // configure one side only a or b
+    }
   }
 
   void attachTimerIsr( uint32_t TIMER_BASE_ADDRESS,
@@ -174,14 +208,6 @@ namespace roveware /////////////////////////////////////////////////////////////
     else if ( timer == T7_A    ) { return { SYSCTL_PERIPH_TIMER7, TIMER7_BASE, TIMER_A, INT_TIMER7A }; } // 15 - No CCP pin routed on Launchpad (MCU T7CCP0)
     else if ( timer == T7_B    ) { return { SYSCTL_PERIPH_TIMER7, TIMER7_BASE, TIMER_B, INT_TIMER7B }; } // 16 - No CCP pin routed on Launchpad (MCU T7CCP1)
     else                         { return {                    0,           0,       0,           0 }; } // INVALID 
-  }
-
-   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Todo...Note: This function was never implemented by the TivaWare DriverLib team for some reason, TimerValueGet returns a 16 bit timer, not the full 24 bit timer
-  uint32_t TimerValueGet24( uint32_t timer_base, uint32_t timer_channel_ab ) 
-  { 
-    if (       timer_channel_ab == TIMER_A ) { return (uint32_t)( HWREG( timer_base + TIMER_O_TAR ) + ( HWREG( timer_base + TIMER_O_TAPS ) << 16 ) ); } 
-    else if (  timer_channel_ab == TIMER_B ) { return (uint32_t)( HWREG( timer_base + TIMER_O_TBR ) + ( HWREG( timer_base + TIMER_O_TBPS ) << 16 ) ); } 
   }
 
 }// end namespace roveware ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

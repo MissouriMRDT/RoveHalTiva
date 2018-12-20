@@ -58,8 +58,8 @@ namespace roveware /////////////////////////////////////////////////////////////
     volatile uint32_t last_capture_ticks;
     volatile bool     last_digital_read;
 
-    RoveRingBuff < uint32_t, 16 > PulsePeriodsamples; // RoveRingBuff < TYPE, SIZE > PulsePeriodsamples; // todo make this whole struct a template struct on BUFF_TYPE_T, BUFF_SIZE_T
-    RoveRingBuff < uint32_t, 16 > PulseWidthSamples;  // RoveRingBuff < TYPE, SIZE > PulseWidthSamples;   
+    RoveRingBuff < uint32_t, 16 > PulsePeriods; // Todo wrap the struct in a template wrapper on BUFF_TYPE_T, BUFF_SIZE_T
+    RoveRingBuff < uint32_t, 16 > PulseWidths;  
   };
 
   struct CcpWireBreak

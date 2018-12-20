@@ -43,10 +43,21 @@ void RoveTimerInterrupt::attachMicros( void(*userFunction)(void), int period_mic
     this->Timer.period_ticks = period_micros * roveware::PIOSC_TICKS_PER_MICRO;
     this->Timer.userFunction  = userFunction;
 
-    roveware::configureTimer( roveware::TIMER_USE_PIOSC,               roveware::TIMER_USE_PERIODIC_UP_AB,
-                              this->Timer.Hardware.TIMER_PERIPHERAL,   this->Timer.Hardware.TIMER_BASE_ADDRESS );
-    roveware::attachTimerIsr( this->Timer.Hardware.TIMER_BASE_ADDRESS, this->Timer.Hardware.TIMER_CHANNEL_AB, 
-                              this->Timer.interrupt_source,            this->Timer.Hardware.TIMER_INTERRUPT, this->Timer.timerIsr, priority );
+    uint32_t TIMER_CHANNEL_AB;
+    if ( ( this->timer %  2) == 0 ){ TIMER_CHANNEL_AB = TIMER_B; }
+    else                           { TIMER_CHANNEL_AB = TIMER_A; }
+
+    roveware::configureTimer( roveware::TIMER_USE_PIOSC,         
+                              roveware::TIMER_USE_PERIODIC_UP_AB,
+                              this->Timer.Hardware.TIMER_PERIPHERAL,
+                              this->Timer.Hardware.TIMER_BASE_ADDRESS,
+                              TIMER_CHANNEL_AB );
+                              
+    roveware::attachTimerIsr( this->Timer.Hardware.TIMER_BASE_ADDRESS,
+                              this->Timer.Hardware.TIMER_CHANNEL_AB,
+                              this->Timer.interrupt_source,
+                              this->Timer.Hardware.TIMER_INTERRUPT, 
+                              this->Timer.timerIsr, priority );
   }
 }
 

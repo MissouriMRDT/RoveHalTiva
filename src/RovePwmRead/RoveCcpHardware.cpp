@@ -56,24 +56,24 @@ namespace roveware /////////////////////////////////////////////////////////////
 
   volatile bool ccp_wire_break_is_init = false;
 
-  void ccpIsrTicks_0A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T0_A ] ); }
-  void ccpIsrTicks_0B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T0_B ] ); }
-  void ccpIsrTicks_1A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T1_A ] ); }
-  void ccpIsrTicks_1B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T1_B ] ); }
-  void ccpIsrTicks_2A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T2_A ] ); }
-  void ccpIsrTicks_2B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T2_B ] ); }
-  void ccpIsrTicks_3A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T3_A ] ); }
-  void ccpIsrTicks_3B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T3_B ] ); }
-  void ccpIsrTicks_4A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T4_A ] ); }
-  void ccpIsrTicks_4B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T4_B ] ); }
-  void ccpIsrTicks_5A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T5_A ] ); }
-  void ccpIsrTicks_5B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T5_B ] ); }
+  void ccpIsrTicks_0A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T0_A - 1] ); }
+  void ccpIsrTicks_0B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T0_B - 1] ); }
+  void ccpIsrTicks_1A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T1_A - 1] ); }
+  void ccpIsrTicks_1B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T1_B - 1] ); }
+  void ccpIsrTicks_2A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T2_A - 1] ); }
+  void ccpIsrTicks_2B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T2_B - 1] ); }
+  void ccpIsrTicks_3A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T3_A - 1] ); }
+  void ccpIsrTicks_3B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T3_B - 1] ); }
+  void ccpIsrTicks_4A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T4_A - 1] ); }
+  void ccpIsrTicks_4B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T4_B - 1] ); }
+  void ccpIsrTicks_5A ( void ) { dispatchCcpIsrTicks( CcpTicks[ T5_A - 1] ); }
+  void ccpIsrTicks_5B ( void ) { dispatchCcpIsrTicks( CcpTicks[ T5_B - 1] ); }
 
   bool isCcpValid( int pin ) //////////
   { return ccpPinMux(  pin ) && true; }
 
   void attachCcpTicks( int timer, struct CcpTicks* Ccp )
-  {             CcpTicks [ timer ]               = Ccp; }
+  {             CcpTicks [ timer - 1 ] = Ccp; }
 
 
   volatile bool edge_capture_blink = LOW; 
@@ -91,15 +91,15 @@ namespace roveware /////////////////////////////////////////////////////////////
 
     if ( ( digital_read == HIGH ) and ( digital_read != Ccp->last_digital_read ) )
     {
-      Ccp->PulseWidthSamples.push(   capture_ticks );
-      Ccp->PulsePeriodsamples.push(  capture_ticks + Ccp->last_capture_ticks ); // Todo wire break clear on valid handling
+      //Ccp->PulseWidths.push(   capture_ticks );
+      //Ccp->PulsePeriods.push(  capture_ticks + Ccp->last_capture_ticks ); // Todo wire break clear on valid handling
       ccpEdgeIsCaptured( Ccp->timer, true ); // success
     }
 
     Ccp->last_capture_ticks = capture_ticks;
     Ccp->last_digital_read  = digital_read;
 
-    digitalWrite( PF_0,  digital_read );
+    digitalWrite( PN_1,  digital_read );
 
     TimerIntClear(  Ccp->Timer.Hardware.TIMER_BASE_ADDRESS, Ccp->Timer.interrupt_source );
     TimerIntEnable( Ccp->Timer.Hardware.TIMER_BASE_ADDRESS, Ccp->Timer.interrupt_source );
