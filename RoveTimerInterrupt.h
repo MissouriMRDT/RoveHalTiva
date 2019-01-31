@@ -27,6 +27,7 @@
 // T7_A             // NO_CONFLICTS                               Pin not wired on TI TivaC1294XL Launchpad
 // T7_B             // NO_CONFLICTS                               Pin not wired on TI TivaC1294XL Launchpad
 
+#include "RoveBoardMap.h"
 #include "RoveTimer.h"
 
 #include <stdint.h>
@@ -39,10 +40,7 @@ public:
   void attachMicros( void(*userFunction)(void), uint8_t timer , int period_micros, int priority=7 );
   void start();
   void stop();
-
-  void anything();
-
-private:
+  
   struct  roveware::Timer              Timer;
   uint8_t                              timer;
   void    lookupTimerHardware( uint8_t timer );

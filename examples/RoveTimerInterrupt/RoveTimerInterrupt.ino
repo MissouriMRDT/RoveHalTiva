@@ -2,7 +2,7 @@
 // MRDT 2019 => Tiva C 1294/129E Launchpad Timer Interrupt Module (Timer ISR)
 /////////////////////////////////////////////////////////////////////////////
 
-#include "RoveBoardTivaC.h"
+#include "RoveTimerInterrupt.h"
 
 /////////////////////////////////////
 // Todo comments and bounds checking:

@@ -32,6 +32,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #include "RoveTimerInterrupt.h"
+#include "RoveBoardMap.h"
 #include "RoveCcp.h"
 
 #include <stdint.h>
@@ -57,7 +58,6 @@ public:
 
   bool isWireBroken();
 
-//private:
   struct roveware::CcpTicks CcpTicks;
   uint8_t                        pin;
 };
