@@ -18,17 +18,15 @@
 
 #include "driverlib/timer.h"
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-uint32_t TimerValueGet24(    uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB );
-void     TimerConfigure16AB( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB, uint32_t TIMER_CONFIGURE );
+uint32_t TimerValueGet24(    uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB ); /////////////////////////
+void     TimerConfigure24AB( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB, uint32_t TIMER_CONFIGURE );
 
-///////////////////////////////////////////////////////////////////////
-namespace roveware
+namespace roveware ///////////////////////////////////////////////////////////////////////////////////////////////////////
 {
   typedef void (*isrPtr)( void );
 
-  enum  timer_clock_source_t { TIMER_USE_SYSCLOCK = 0x00000000, 
-                               TIMER_USE_PIOSC    = 0x00000001 };
+  enum  timer_clock_source { TIMER_USE_SYSCLOCK = 0x00000000, 
+                             TIMER_USE_PIOSC    = 0x00000001 };
 
   const int      SYSCLOCK_TICKS_PER_MICRO   = ( 120000000 / 1000000 );
   const int      PIOSC_TICKS_PER_MICRO      = (  16000000 / 1000000 );
@@ -55,36 +53,51 @@ namespace roveware
     void ( *userFunction )( void );
   };
 
-  /////////////////////////////////////////////////////////
-  void setupTimer(     uint32_t TIMER_CLOCK_SOURCE,
-                       uint32_t TIMER_CONFIGURE,
-                       uint32_t TIMER_PERIPHERAL,
-                       uint32_t TIMER_BASE_ADDRESS,
-                       uint32_t TIMER_CHANNEL_AB );
+  void setupTimerHardware(  uint32_t TIMER_CLOCK_SOURCE, ////
+                            uint32_t TIMER_CONFIGURE,
+                            uint32_t TIMER_PERIPHERAL,
+                            uint32_t TIMER_BASE_ADDRESS,
+                            uint32_t TIMER_CHANNEL_AB );
 
-  void attachTimerIsr( uint32_t TIMER_BASE_ADDRESS,
-                       uint32_t TIMER_CHANNEL_AB,
-                       uint32_t TIMER_INTERRUPT_SOURCE,
-                       uint32_t TIMER_INTERRUPT,
-                       void  ( *timerIsr )( void ),
-                       uint8_t  priority );
+  void attachTimerIsr(      uint32_t TIMER_BASE_ADDRESS, ///
+                            uint32_t TIMER_CHANNEL_AB,
+                            uint32_t TIMER_INTERRUPT_SOURCE,
+                            uint32_t TIMER_INTERRUPT,
+                            void  ( *timerIsr )( void ),
+                            uint8_t  priority );
 
-  void startTimer(     uint32_t TIMER_BASE_ADDRESS,
-                       uint32_t TIMER_CHANNEL_AB,
-                       uint32_t TIMER_INTERRUPT_SOURCE,
-                       uint32_t TIMER_PERIOD_TICKS_24 );
+  void loadTimer(           uint32_t TIMER_BASE_ADDRESS, ////
+                            uint32_t TIMER_CHANNEL_AB,
+                            uint32_t TIMER_INTERRUPT_SOURCE,
+                            uint32_t TIMER_PERIOD_TICKS_24 );
 
-  void stopTimer(      uint32_t TIMER_BASE_ADDRESS,
-                       uint32_t TIMER_INTERRUPT_SOURCE );
+  void enableTimer(         uint32_t TIMER_BASE_ADDRESS,  ////
+                            uint32_t TIMER_INTERRUPT_SOURCE );
+
+  void startTimer(          uint32_t TIMER_BASE_ADDRESS, /////
+                            uint32_t TIMER_CHANNEL_AB,
+                            uint32_t TIMER_INTERRUPT_SOURCE,
+                            uint32_t TIMER_PERIOD_TICKS_24 );
+
+  void stopTimer(           uint32_t TIMER_BASE_ADDRESS,
+                            uint32_t TIMER_INTERRUPT_SOURCE );
+
+  void captureBothEdges(    uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB );
+  void captureRisingEdges(  uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB );
+  void captureFallingEdges( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB );
+
   
-  uint8_t              pinToTimer(               uint8_t pin );
-  bool                 isTimerValid(             uint8_t timer );
+  uint8_t              pinToTimer(             uint8_t  pin ); ////////////
+  bool                 isTimerValid(           uint8_t  timer );
+  bool                 isPeriodTicks24Valid(   uint32_t period_ticks_24 ) ;
 
-  struct TimerHardware timerHardware (           uint8_t timer );
-  void                 timerIsrPeriodic(         struct  Timer* Timer );
-  isrPtr               dispatchTimerIsrPeriodic( uint8_t timer );
-  void                 attachTimerHardware(      uint8_t timer,   
-                                                 struct  Timer*  Timer );
+
+
+  struct TimerHardware lookupTimerHardware (   uint8_t  timer ); /////
+  isrPtr               lookupTimerIsrPeriodic( uint8_t  timer );
+  void                 attachTimerHardware(    uint8_t  timer,   
+                                               struct   Timer* Timer );
+  void timerIsrPeriodic(                       struct   Timer* Timer );
 
   void dispatchTimerIsrPeriodic_0A ( void );
   void dispatchTimerIsrPeriodic_0B ( void );

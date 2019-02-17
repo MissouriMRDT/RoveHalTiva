@@ -22,20 +22,19 @@
 
 #include "RovePwmGen.h"
 
+#include "RoveTimer.h" // Todo => move roveware::SYSCLOCK_TICKS_PER_MICRO to map file?
+
 #include <stdint.h> // wtf? => must be included BEFORE driverlib/timer.h ?
 
 #include "Energia.h"       // Todo?
 #include "driverlib/pwm.h" // Todo?
 
-/////////////////////////////////////////////////////
-uint32_t todo_clock_div = PWM_SYSCLK_DIV_64; // Todo?
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void rovePwmMicrosWrite( uint8_t pin, int pulse_width_micros, int pulse_period_micros)
+void rovePwmMicrosWrite( uint8_t pin, int pulse_width_micros, int pulse_period_micros )
 {
   if( roveware::isPwmGenValid( pin ) )
-  { uint32_t  pulse_width_ticks_16  = ( pulse_width_micros  * roveware::PWM_GEN_DIV_1_TICKS_PER_MICRO ) / 64;
-    uint32_t  pulse_period_ticks_16 = ( pulse_period_micros * roveware::PWM_GEN_DIV_1_TICKS_PER_MICRO ) / 64;
+  { uint32_t  pulse_width_ticks_16  = ( pulse_width_micros  * roveware::SYSCLOCK_TICKS_PER_MICRO ) / 64;
+    uint32_t  pulse_period_ticks_16 = ( pulse_period_micros * roveware::SYSCLOCK_TICKS_PER_MICRO ) / 64;
 
     if (     pulse_width_ticks_16 == 0 )
     { digitalWrite( pin, LOW  ); }
@@ -45,8 +44,8 @@ void rovePwmMicrosWrite( uint8_t pin, int pulse_width_micros, int pulse_period_m
 
     else 
     { struct roveware::PwmGenHardware Hw = roveware::pwmGenHardware( pin );
-      roveware::setPwmGen   ( Hw.PWM_GEN_PIN_MUX, Hw.PWM_GEN, todo_clock_div,  Hw.PORT_BASE_ADDRESS, Hw .PIN_BIT_MASK );
-      roveware::pwmGenWrite ( Hw.PWM_GEN,         Hw.PWM_OUT, Hw.PIN_BIT_MASK, pulse_width_ticks_16, pulse_period_ticks_16 ); }
+      roveware::setPwmGen   ( Hw.PWM_GEN_PIN_MUX, Hw.PWM_GEN, roveware::PWM_USE_DIVIDE_CLOCK_BY_64,  Hw.PORT_BASE_ADDRESS, Hw.PIN_BIT_MASK );
+      roveware::pwmGenWrite ( Hw.PWM_GEN,         Hw.PWM_OUT, Hw.PWM_BIT_MASK, pulse_width_ticks_16, pulse_period_ticks_16 ); }
 } }
 
 ///////////////////////////////////////////////////////////////////////////

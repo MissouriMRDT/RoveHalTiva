@@ -6,6 +6,7 @@
 #define ROVE_PWM_GEN_H
 
 #include <stdint.h>
+#include "driverlib/pwm.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Todo => 120Mhz / ( micros / sec ) 
@@ -33,7 +34,15 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace roveware
 {
-  const uint32_t PWM_GEN_DIV_1_TICKS_PER_MICRO = ( 120000000 / 1000000 );
+  enum pwm_gen_div { PWM_USE_FULL_SPEED_CLOCK   = PWM_SYSCLK_DIV_1, 
+                     PWM_USE_DIVIDE_CLOCK_BY_2  = PWM_SYSCLK_DIV_2, 
+                     PWM_USE_DIVIDE_CLOCK_BY_4  = PWM_SYSCLK_DIV_4, 
+                     PWM_USE_DIVIDE_CLOCK_BY_8  = PWM_SYSCLK_DIV_8, 
+                     PWM_USE_DIVIDE_CLOCK_BY_16 = PWM_SYSCLK_DIV_16, 
+                     PWM_USE_DIVIDE_CLOCK_BY_32 = PWM_SYSCLK_DIV_32,
+                     PWM_USE_DIVIDE_CLOCK_BY_64 = PWM_SYSCLK_DIV_64 };
+
+  //const int      SYSCLOCK_TICKS_PER_MICRO   = ( 120000000 / 1000000 );
 
   /////////////////////////////////////
   struct PwmGenHardware
@@ -41,6 +50,7 @@ namespace roveware
     volatile uint32_t PWM_GEN_PIN_MUX;
     volatile uint32_t PWM_GEN;
     volatile uint32_t PWM_OUT;
+    volatile uint32_t PWM_BIT_MASK;
     volatile uint32_t PORT_BASE_ADDRESS;
     volatile uint32_t PIN_BIT_MASK;
   };
@@ -48,11 +58,11 @@ namespace roveware
   ////////////////////////////////////////////////////
   struct PwmGenHardware pwmGenHardware( uint8_t pin );
 
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  void setPwmGen(   uint32_t PWM_PIN_MUX, uint32_t PWM_GEN, uint32_t CLOCK_DIV, uint32_t PORT_BASE_ADDRESS, uint32_t PIN_BIT_MASK );
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  void setPwmGen(     uint32_t PWM_PIN_MUX, uint32_t PWM_GEN, uint32_t CLOCK_DIV, uint32_t PORT_BASE_ADDRESS, uint32_t PIN_BIT_MASK );
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  void pwmGenWrite( uint32_t PWM_GEN, uint32_t PWM_OUT, uint32_t PIN_BIT_MASK, uint16_t WIDTH_TICKS_16, uint16_t PERIOD_TICKS_16 );
+  void pwmGenWrite(   uint32_t PWM_GEN, uint32_t PWM_OUT, uint32_t PWM_BIT_MASK, uint16_t WIDTH_TICKS_16, uint16_t PERIOD_TICKS_16 );
 
   bool isPwmGenValid( uint8_t pin );
 

@@ -5,11 +5,14 @@
 #ifndef ROVE_TIMER_INTERRUPT_H
 #define ROVE_TIMER_INTERRUPT_H
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
 // Todo => timer_clock_source_t clock_source=USE_PIOSC );
-// Todo forward declare => instead of comments and .h file ?
+// Todo => forward declare => instead of comments and .h file ?
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 'Attach' the userFunction to a 24 bit by timer_ab number (1~16)
 // (16b) periodic halfwidth (+8b) prescale timer interrupt 
+
 // T0_A             // PIN_CONFLICTS     PD_0 or PA_0 or PL_4     Energia::analogWrite or roveware::PwmRead
 // T0_B             // PIN_CONFLICTS     PD_1 or PA_1 or PL_5     Energia::analogWrite or RoveWare::PwmRead
 // T1_A             // PIN_CONFLICTS     PD_2 or PA_2 or PL_6     Energia::analogWrite or RoveWare::PwmRead 
@@ -41,10 +44,10 @@ public:
   void start();
   void stop();
   
-  struct  roveware::Timer              Timer;
-  uint8_t                              timer;
-  void    lookupTimerHardware( uint8_t timer );
+// private:
+  struct  roveware::Timer     Timer;
+  uint8_t                     timer;
+  void    setupTimer( uint8_t timer );
 };
-
 
 #endif // ROVE_TIMER_INTERRUPT_H

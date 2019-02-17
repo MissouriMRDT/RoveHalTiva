@@ -21,12 +21,11 @@
 #include "driverlib/sysctl.h"
 #include "inc/hw_memmap.h"
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RovePwmRead::attach( uint8_t pin, int priority, uint32_t max_period_ticks )
+void RovePwmRead::attach( uint8_t pin, int priority ) ///////////////////////////////////////////////////////////
 {
-  this->pin               = pin;
-  this->CcpTicks.priority = priority;
-  this->CcpTicks.timer    = roveware::pinToTimer( this->pin );
+  this->pin                          = pin;
+  this->CcpTicks.priority            = priority;
+  this->CcpTicks.timer               = roveware::pinToTimer( this->pin );
 
   if ( ( this->CcpTicks.timer %  2) == 0 ){ this->CcpTicks.Timer.interrupt_source = TIMER_CFG_B_CAP_TIME; }
   else {                                    this->CcpTicks.Timer.interrupt_source = TIMER_CFG_A_CAP_TIME; }
@@ -34,18 +33,21 @@ void RovePwmRead::attach( uint8_t pin, int priority, uint32_t max_period_ticks )
   this->CcpTicks.Hw.PORT_BASE_ADDRESS = (uint32_t)portBASERegister( digitalPinToPort( this->pin ) );
   this->CcpTicks.Hw.PIN_BIT_MASK      =                          digitalPinToBitMask( this->pin   );
   this->CcpTicks.Hw.CCP_PIN_MUX       = roveware::ccpPinMux(                          this->pin   );
-  this->CcpTicks.Timer.Hw             = roveware::timerHardware(                      this->CcpTicks.timer );
-  this->CcpTicks.Timer.timerIsr       = roveware::dispatchCcpTicksIsr(                this->CcpTicks.timer );
-  this->CcpTicks.Timer.period_ticks   = max_period_ticks;
+  this->CcpTicks.Timer.Hw             = roveware::lookupTimerHardware(                this->CcpTicks.timer );
+  this->CcpTicks.Timer.timerIsr       = roveware::lookupCcpTicksIsr(                  this->CcpTicks.timer );
+  this->CcpTicks.Timer.period_ticks   = RovePwmRead::MAX_POSSIBLE_PERIOD_MICROS * roveware::PIOSC_TICKS_PER_MICRO;
 
   roveware::attachCcpTicks( this->CcpTicks.timer, &( this->CcpTicks ) );
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////
-void RovePwmRead::start()
-{ 
-  if ( roveware::isTimerValid( this->CcpTicks.timer ) ){
+void RovePwmRead::attachUserIsr( roveware::userCcpTicksArgsIsrPtr userIsr )
+{       roveware::attachUserCcpTicksIsr( &( this->CcpTicks ),     userIsr );  }
 
+void RovePwmRead::start() //////////////////////////////////////////////////////
+{ 
+  if( ( roveware::isTimerValid(          this->CcpTicks.timer ) )
+  &&  ( roveware::isPeriodTicks24Valid ( this->CcpTicks.Timer.period_ticks ) ) )
+  {
     pinMode(                  this->pin, INPUT);
     GPIOPinTypeTimer(         this->CcpTicks.Hw.PORT_BASE_ADDRESS,
                               this->CcpTicks.Hw.PIN_BIT_MASK);
@@ -56,79 +58,59 @@ void RovePwmRead::start()
     if ( ( this->CcpTicks.timer %  2) == 0 ){ TIMER_CHANNEL_AB = TIMER_B; }
     else                                    { TIMER_CHANNEL_AB = TIMER_A; }
                    
-    roveware::setupTimer(     roveware::TIMER_USE_PIOSC,
-                              roveware::TIMER_USE_CAPTURE_TICKS_AB,
-                              this->CcpTicks.Timer.Hw.TIMER_PERIPHERAL,
-                              this->CcpTicks.Timer.Hw.TIMER_BASE_ADDRESS,
-                              TIMER_CHANNEL_AB );
+    roveware::setupTimerHardware( roveware::TIMER_USE_PIOSC,
+                                  roveware::TIMER_USE_CAPTURE_TICKS_AB,
+                                  this->CcpTicks.Timer.Hw.TIMER_PERIPHERAL,
+                                  this->CcpTicks.Timer.Hw.TIMER_BASE_ADDRESS,
+                                  TIMER_CHANNEL_AB );
 
-    TimerControlEvent(        this->CcpTicks.Timer.Hw.TIMER_BASE_ADDRESS,
-                              this->CcpTicks.Timer.Hw.TIMER_CHANNEL_AB,
-                              TIMER_EVENT_BOTH_EDGES);
+    roveware::captureBothEdges(   this->CcpTicks.Timer.Hw.TIMER_BASE_ADDRESS,
+                                  this->CcpTicks.Timer.Hw.TIMER_CHANNEL_AB );
 
-    roveware::attachTimerIsr( this->CcpTicks.Timer.Hw.TIMER_BASE_ADDRESS,
-                              this->CcpTicks.Timer.Hw.TIMER_CHANNEL_AB,
-                              this->CcpTicks.Timer.interrupt_source,
-                              this->CcpTicks.Timer.Hw.TIMER_INTERRUPT,
-                              this->CcpTicks.Timer.timerIsr,
-                              this->CcpTicks.priority );
+    roveware::attachTimerIsr(     this->CcpTicks.Timer.Hw.TIMER_BASE_ADDRESS,
+                                  this->CcpTicks.Timer.Hw.TIMER_CHANNEL_AB,
+                                  this->CcpTicks.Timer.interrupt_source,
+                                  this->CcpTicks.Timer.Hw.TIMER_INTERRUPT,
+                                  this->CcpTicks.Timer.timerIsr,
+                                  this->CcpTicks.priority );
 
-    roveware::startTimer(     this->CcpTicks.Timer.Hw.TIMER_BASE_ADDRESS,
-                              this->CcpTicks.Timer.Hw.TIMER_CHANNEL_AB,
-                              this->CcpTicks.Timer.interrupt_source,
-                              this->CcpTicks.Timer.period_ticks ); }
+    roveware::startTimer(         this->CcpTicks.Timer.Hw.TIMER_BASE_ADDRESS,
+                                  this->CcpTicks.Timer.Hw.TIMER_CHANNEL_AB,
+                                  this->CcpTicks.Timer.interrupt_source,
+                                  this->CcpTicks.Timer.period_ticks ); }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RovePwmRead::stop()
-{ if ( roveware::isTimerValid( this->CcpTicks.timer ) ){
-       roveware::stopTimer(    this->CcpTicks.Timer.Hw.TIMER_BASE_ADDRESS, this->CcpTicks.Timer.interrupt_source ); }
+void RovePwmRead::stop() ///////////////////////////////////////////////////////////////////////////////////////////
+{ if ( roveware::isTimerValid( this->CcpTicks.timer ) )
+  {    roveware::stopTimer(    this->CcpTicks.Timer.Hw.TIMER_BASE_ADDRESS, this->CcpTicks.Timer.interrupt_source ); }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-int RovePwmRead::readHighWidthTicks(){ return this->CcpTicks.PulseWidthsHigh.average();   }
-int RovePwmRead::readLowWidthTicks() { return this->CcpTicks.PulseWidthsLow.average();    }
-int RovePwmRead::readPeriodTicks()   { return this->readHighWidthTicks() + this->readLowWidthTicks();  }
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int RovePwmRead::readHighWidthMicros() { return this->readHighWidthTicks() / roveware::SYSCLOCK_TICKS_PER_MICRO; }
-int RovePwmRead::readLowWidthMicros()  { return this->readLowWidthTicks()  / roveware::SYSCLOCK_TICKS_PER_MICRO; }
-int RovePwmRead::readPeriodMicros()    { return this->readPeriodTicks()    / roveware::SYSCLOCK_TICKS_PER_MICRO; }
-
-int RovePwmRead::readDutyDecipercent() { return ( 1000 * this->readHighWidthTicks() ) / this->readPeriodTicks(); }
-
-//////////////////////////////////////////////////
-//int RovePwmRead::readWidthMillis()
-//{   return this->CcpTicks.PulseWidths.average(); }
-
-///////////////////////////////////////////////////
-//int RovePwmRead::readPeriodMillis( )
-//{   return this->CcpTicks.PulsePeriods.average(); }
-
-//////////////////////////////////////////////////
-//int RovePwmRead::readWidthMicros()
-//{   return this->CcpTicks.PulseWidths.average(); }
-
-///////////////////////////////////////////////////
-//int RovePwmRead::readPeriodMicros( )
-//{   return this->CcpTicks.PulsePeriods.average(); }
-
-/////////////////////////////////////////////////////////////////////////
-bool  RovePwmRead::isWireBroken()
+bool  RovePwmRead::isWireBroken() ////////////////////////////////////////
 { return roveware::isCcpWireBroken( roveware::pinToTimer( this->pin ) ); }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RovePwmReadWireBreaks::attachMillis(                      uint8_t timer, int period_millis, int priority )
+int   RovePwmRead::readHighWidthTicks()  { return this->CcpTicks.PulseWidthsHigh.average(); } ///////////////////
+int   RovePwmRead::readLowWidthTicks()   { return this->CcpTicks.PulseWidthsLow.average();  }
+int   RovePwmRead::readPeriodTicks()     { return this->readHighWidthTicks() + this->readLowWidthTicks(); }
+
+int   RovePwmRead::readHighWidthMicros() { return this->readHighWidthTicks() / roveware::PIOSC_TICKS_PER_MICRO; }
+int   RovePwmRead::readLowWidthMicros()  { return this->readLowWidthTicks()  / roveware::PIOSC_TICKS_PER_MICRO; }
+int   RovePwmRead::readPeriodMicros()    { return this->readPeriodTicks()    / roveware::PIOSC_TICKS_PER_MICRO; }
+
+int   RovePwmRead::readHighWidthMillis() { return this->readHighWidthMicros() / 1000; }
+int   RovePwmRead::readLowWidthMillis()  { return this->readLowWidthMicros()  / 1000; }
+int   RovePwmRead::readPeriodMillis()    { return this->readPeriodMicros()    / 1000; }
+
+int   RovePwmRead::readDutyDecipercent() { return ( 1000   * this->readHighWidthTicks() ) / this->readPeriodTicks(); }
+float RovePwmRead::readDutyPercent()     { return            this->readDutyDecipercent()  / 10.0; }
+
+void RovePwmReadWireBreaks::attach(                           uint8_t timer, int  priority ) //
+{  this->AllWireBreaksTimer.attachMillis( roveware::ccpWireBreaksIsr, timer, 100, priority ); }
+
+void RovePwmReadWireBreaks::attachMillis(                      uint8_t timer, int period_millis, int priority ) //
 {   this->AllWireBreaksTimer.attachMillis( roveware::ccpWireBreaksIsr, timer,     period_millis,     priority ); }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RovePwmReadWireBreaks::attachMicros(                      uint8_t timer, int period_millis, int priority )
-{   this->AllWireBreaksTimer.attachMicros( roveware::ccpWireBreaksIsr, timer,     period_millis,     priority ); }
+void RovePwmReadWireBreaks::attachMicros(                      uint8_t timer, int period_micros, int priority )
+{   this->AllWireBreaksTimer.attachMicros( roveware::ccpWireBreaksIsr, timer,     period_micros,     priority ); }
 
-//////////////////////////////////////
-void RovePwmReadWireBreaks::start()
-{  this->AllWireBreaksTimer.start(); }
-
-//////////////////////////////////////
-void RovePwmReadWireBreaks::stop()
-{  this->AllWireBreaksTimer.stop(); }
+void RovePwmReadWireBreaks::start() { this->AllWireBreaksTimer.start(); }
+void RovePwmReadWireBreaks::stop()  { this->AllWireBreaksTimer.stop();  }

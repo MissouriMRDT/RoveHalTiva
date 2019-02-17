@@ -41,19 +41,14 @@
 #include "inc/hw_timer.h"
 #include "tm4c1294ncpdt.h"
 
-///////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 namespace roveware
 {
-  // volatile bool       ccp_wirebreaks_is_init = false; // todo?
-  volatile bool       edge_capture_blink     = LOW;
-
-  bool toggle = false;
-
   struct CcpTicks*    CcpTicks[12]           = {     0 }; // todo initializer?
-  struct CcpWireBreak CcpWireBreak           = { false, false, false, false, false, false,
-                                                 false, false, false, false, false, false,
-                                                 true,  true,  true,  true,  true,  true,
-                                                 true,  true,  true,  true,  true,  true };
+  struct CcpWireBreak CcpWireBreak           = { false,  false,  false,  false,  false,  false,
+                                                 false,  false,  false,  false,  false,  false,
+                                                 false,  false,  false,  false,  false,  false,
+                                                 false,  false,  false,  false,  false,  false };
 
   /////////////////////////////////////////
   bool isCcpValid( uint8_t pin )
@@ -63,45 +58,32 @@ namespace roveware
   void attachCcpTicks( uint8_t timer, struct CcpTicks* CcpTick )
   {                 CcpTicks [ timer - 1 ] =           CcpTick; }
 
-  ////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////
+  void attachUserCcpTicksIsr( struct CcpTicks* CcpTick, userCcpTicksArgsIsrPtr userCcpTicksIsr ) 
+  {                                            CcpTick->userCcpTicksIsr      = userCcpTicksIsr; }
+
+  void noUserCcpTicksIsr( void* DummyArg1, bool dummy_arg_2, uint32_t dummy_arg_3 ){ /* Dummy No Op */ }
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   void ccpTicksIsr( struct CcpTicks* CcpTicks )
   {
-    TimerIntClear(    CcpTicks->Timer.Hw.TIMER_BASE_ADDRESS,
-                      CcpTicks->Timer.interrupt_source );
+    stopTimer(         CcpTicks->Timer.Hw.TIMER_BASE_ADDRESS, CcpTicks->Timer.interrupt_source );
+    loadTimer(         CcpTicks->Timer.Hw.TIMER_BASE_ADDRESS, CcpTicks->Timer.Hw.TIMER_CHANNEL_AB,  
+                       CcpTicks->Timer.interrupt_source,      CcpTicks->Timer.period_ticks );
+    ccpEdgeIsCaptured( CcpTicks->timer, true );
 
-    TimerIntDisable(  CcpTicks->Timer.Hw.TIMER_BASE_ADDRESS,
-                      CcpTicks->Timer.interrupt_source  );
-
-    TimerPrescaleSet( CcpTicks->Timer.Hw.TIMER_BASE_ADDRESS,
-                      CcpTicks->Timer.Hw.TIMER_CHANNEL_AB,
-           (uint8_t)( CcpTicks->Timer.period_ticks >> 16 ) );
-
-    TimerLoadSet(     CcpTicks->Timer.Hw.TIMER_BASE_ADDRESS,
-                      CcpTicks->Timer.Hw.TIMER_CHANNEL_AB,
-           (uint8_t)( CcpTicks->Timer.period_ticks  & 0xFFFF ) );
-
+    bool     digital_read  = GPIOPinRead( CcpTicks->Hw.PORT_BASE_ADDRESS,    CcpTicks->Hw.PIN_BIT_MASK ) && true;
     uint32_t capture_ticks = CcpTicks->Timer.period_ticks - TimerValueGet24( CcpTicks->Timer.Hw.TIMER_BASE_ADDRESS,
                                                                              CcpTicks->Timer.Hw.TIMER_CHANNEL_AB );
-
-    bool digital_read      =  GPIOPinRead(     CcpTicks->Hw.PORT_BASE_ADDRESS,
-                                               CcpTicks->Hw.PIN_BIT_MASK ) && true;
-
     if( digital_read == HIGH ) // Rising edge interrupt, save low width ticks
-    { CcpTicks->PulseWidthsHigh.pushToBack(  capture_ticks ); } 
-    
-    else                     // Falling edge interrupt, save high width ticks, aperiod =  low + high
-    { CcpTicks->PulseWidthsLow.pushToBack(  capture_ticks ); }
+    { CcpTicks->PulseWidthsHigh.pushToBack( capture_ticks ); } 
+
+    else                       // Falling edge interrupt, save high width ticks
+    { CcpTicks->PulseWidthsLow.pushToBack( capture_ticks ); }
  
-    // debug
-    // digitalWrite( PF_0,  digital_read ); 
-    // if( digital_read == CcpTicks->last_digital_read ) 
-    // { digitalWrite(PF_4, HIGH); } CcpTicks->last_digital_read  = digital_read; 
-
-    TimerIntClear(  CcpTicks->Timer.Hw.TIMER_BASE_ADDRESS,
-                    CcpTicks->Timer.interrupt_source );
-
-    TimerIntEnable( CcpTicks->Timer.Hw.TIMER_BASE_ADDRESS,
-                    CcpTicks->Timer.interrupt_source );
+    CcpTicks->userCcpTicksIsr( CcpTicks, digital_read, capture_ticks );
+    enableTimer(               CcpTicks->Timer.Hw.TIMER_BASE_ADDRESS, 
+                               CcpTicks->Timer.interrupt_source );
   }
 
   ////////////////////////////////////////////////////////
@@ -119,7 +101,7 @@ namespace roveware
     ccpWireIsBroken(   T4_B, !isCcpEdgeCaptured( T4_B ) );
     ccpWireIsBroken(   T5_A, !isCcpEdgeCaptured( T5_A ) );
     ccpWireIsBroken(   T5_B, !isCcpEdgeCaptured( T5_B ) );
-    
+  
     ccpEdgeIsCaptured( T0_A,  false );
     ccpEdgeIsCaptured( T0_B,  false );
     ccpEdgeIsCaptured( T1_A,  false );
@@ -238,8 +220,8 @@ namespace roveware
     else                   { return               0; }
   }
 
-  /////////////////////////////////////////////////////////////
-  isrPtr dispatchCcpTicksIsr( uint8_t timer )
+  //////////////////////////////////////////////////////////////
+  isrPtr lookupCcpTicksIsr( uint8_t timer )
   {
          if ( timer == T0_A ){ return dispatchCcpTicksIsr_0A; }
     else if ( timer == T0_B ){ return dispatchCcpTicksIsr_0B; }

@@ -52,27 +52,27 @@ namespace roveware /////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   void pwmGenWrite ( uint32_t PWM_GEN,
                      uint32_t PWM_OUT,
-                     uint32_t PIN_BIT_MASK,
+                     uint32_t PWM_BIT_MASK,
                      uint16_t WIDTH_TICKS_16,
                      uint16_t PERIOD_TICKS_16 )
   {
     PWMGenPeriodSet(  PWM0_BASE, PWM_GEN,      PERIOD_TICKS_16 );
     PWMPulseWidthSet( PWM0_BASE, PWM_OUT,      WIDTH_TICKS_16 );
-    PWMOutputState(   PWM0_BASE, PIN_BIT_MASK, true );
+    PWMOutputState(   PWM0_BASE, PWM_BIT_MASK, true );
   }
 
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   struct PwmGenHardware pwmGenHardware ( uint8_t pin )
   {
-         if ( pin == PF_0    ) { return { GPIO_PF0_M0PWM0, PWM_GEN_0, PWM_OUT_0, GPIO_PORTF_BASE, (1 << 0) }; }
-    else if ( pin == PF_1    ) { return { GPIO_PF1_M0PWM1, PWM_GEN_0, PWM_OUT_1, GPIO_PORTF_BASE, (1 << 1) }; }
-    else if ( pin == PF_2    ) { return { GPIO_PF2_M0PWM2, PWM_GEN_1, PWM_OUT_2, GPIO_PORTF_BASE, (1 << 2) }; }
-    else if ( pin == PF_3    ) { return { GPIO_PF3_M0PWM3, PWM_GEN_1, PWM_OUT_3, GPIO_PORTF_BASE, (1 << 3) }; }
-    else if ( pin == PG_0    ) { return { GPIO_PG0_M0PWM4, PWM_GEN_2, PWM_OUT_4, GPIO_PORTG_BASE, (1 << 0) }; }
-    else if ( pin == PG_1    ) { return { GPIO_PG1_M0PWM5, PWM_GEN_2, PWM_OUT_5, GPIO_PORTG_BASE, (1 << 1) }; }
-    else if ( pin == PK_4    ) { return { GPIO_PK4_M0PWM6, PWM_GEN_3, PWM_OUT_6, GPIO_PORTK_BASE, (1 << 4) }; }
-    else if ( pin == PK_5    ) { return { GPIO_PK5_M0PWM7, PWM_GEN_3, PWM_OUT_7, GPIO_PORTK_BASE, (1 << 5) }; }
-    else                       { return {         INVALID,   INVALID,   INVALID,         INVALID,  INVALID }; }
+         if ( pin == PF_0    ) { return { GPIO_PF0_M0PWM0, PWM_GEN_0, PWM_OUT_0, PWM_OUT_0_BIT, GPIO_PORTF_BASE, GPIO_PIN_0 }; }
+    else if ( pin == PF_1    ) { return { GPIO_PF1_M0PWM1, PWM_GEN_0, PWM_OUT_1, PWM_OUT_1_BIT, GPIO_PORTF_BASE, GPIO_PIN_1 }; }
+    else if ( pin == PF_2    ) { return { GPIO_PF2_M0PWM2, PWM_GEN_1, PWM_OUT_2, PWM_OUT_2_BIT, GPIO_PORTF_BASE, GPIO_PIN_2 }; }
+    else if ( pin == PF_3    ) { return { GPIO_PF3_M0PWM3, PWM_GEN_1, PWM_OUT_3, PWM_OUT_3_BIT, GPIO_PORTF_BASE, GPIO_PIN_3 }; }
+    else if ( pin == PG_0    ) { return { GPIO_PG0_M0PWM4, PWM_GEN_2, PWM_OUT_4, PWM_OUT_4_BIT, GPIO_PORTG_BASE, GPIO_PIN_0 }; }
+    else if ( pin == PG_1    ) { return { GPIO_PG1_M0PWM5, PWM_GEN_2, PWM_OUT_5, PWM_OUT_5_BIT, GPIO_PORTG_BASE, GPIO_PIN_1 }; }
+    else if ( pin == PK_4    ) { return { GPIO_PK4_M0PWM6, PWM_GEN_3, PWM_OUT_6, PWM_OUT_6_BIT, GPIO_PORTK_BASE, GPIO_PIN_4 }; }
+    else if ( pin == PK_5    ) { return { GPIO_PK5_M0PWM7, PWM_GEN_3, PWM_OUT_7, PWM_OUT_7_BIT, GPIO_PORTK_BASE, GPIO_PIN_5 }; }
+    else                       { return { INVALID,         INVALID,   INVALID,   INVALID,       INVALID,         INVALID    }; }
   }
 
   ///////////////////////////////////////////////////

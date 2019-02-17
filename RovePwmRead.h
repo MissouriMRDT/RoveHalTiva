@@ -37,42 +37,52 @@
 
 #include <stdint.h>
 
-///////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////
 class RovePwmRead
 {
 public:
 
-  void attach( uint8_t pin, int priority=7, uint32_t max_period_ticks=0x00FFFFFF );
-  void start();
-  void stop();
+  void  attach( uint8_t pin, int priority=7 );
+  void  start();
+  void  stop();
 
-  int readHighWidthTicks();
-  int readLowWidthTicks();
-  int readPeriodTicks();
+  bool  isWireBroken();
 
-  int readHighWidthMicros();
-  int readLowWidthMicros();
-  int readPeriodMicros();
+  int   readHighWidthTicks();
+  int   readLowWidthTicks();
+  int   readPeriodTicks();
 
-  int readDutyDecipercent();
+  int   readHighWidthMicros();
+  int   readLowWidthMicros();
+  int   readPeriodMicros();
 
-  bool isWireBroken();
+  int   readHighWidthMillis();
+  int   readLowWidthMillis();
+  int   readPeriodMillis();
 
-  struct roveware::CcpTicks CcpTicks;
-  uint8_t                        pin;
+  int   readDutyDecipercent();
+  float readDutyPercent();
+
+  void attachUserIsr( roveware::userCcpTicksArgsIsrPtr userIsr );
+
+// private:
+  const   uint32_t  MAX_POSSIBLE_PERIOD_MICROS=1000000;
+  struct  roveware::CcpTicks CcpTicks;
+  uint8_t pin;
 };
 
-////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 class  RovePwmReadWireBreaks
 {
 public:
-  void attachMillis( uint8_t timer, int period_millis=100, int priority=7 );
-  void attachMicros( uint8_t timer, int period_millis=100, int priority=7 );
+  void attach(       uint8_t timer, int priority=7 );
+  void attachMillis( uint8_t timer, int period_millis=100,    int priority=7 );
+  void attachMicros( uint8_t timer, int period_micros=100000, int priority=7 );
 
   void start();
   void stop();
 
-private:
+// private:
   struct RoveTimerInterrupt    AllWireBreaksTimer;
 };
 

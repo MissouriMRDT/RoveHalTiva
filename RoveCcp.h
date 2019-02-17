@@ -36,65 +36,27 @@
 
 #include <stdint.h>
 
-/////////////////////////////////////////////////////////////
-namespace roveware
+namespace roveware /////////////////////////////////////////////////////////////////////////////////////
 {
-  //////////////////////////////////////
-  struct CcpHardware
-  {
-    volatile uint32_t CCP_PIN_MUX;
-    volatile uint32_t PORT_BASE_ADDRESS;
-    volatile uint32_t PIN_BIT_MASK;
-  };
+  typedef void (*userCcpTicksArgsIsrPtr)( void* CcpTicksPtr, bool digital_read, uint32_t capture_ticks );
 
-  ////////////////////////////////////////////////
-  struct CcpTicks
-  {  
-    struct  CcpHardware Hw;
-    struct  Timer       Timer;
-    uint8_t timer;
+  bool     isCcpEdgeCaptured(     uint8_t  timer ); //////
+  void     ccpEdgeIsCaptured(     uint8_t  timer, 
+                                  bool     edge_captured );
 
-    volatile int      priority;
-  //volatile bool     last_digital_read; // debug
+  bool     isCcpWireBroken(       uint8_t  timer ); ///
+  void     ccpWireIsBroken(       uint8_t  timer,
+                                  bool     wirebreak );
 
-    RoveRingBuff < uint32_t, 1 > PulseWidthsHigh;
-    RoveRingBuff < uint32_t, 1 > PulseWidthsLow;
-  };
-
-  ///////////////////////////////////////////////////////////
-  struct CcpWireBreak
-  {
-    volatile bool edge_captured_T0_A:1, edge_captured_T0_B:1,
-                  edge_captured_T1_A:1, edge_captured_T1_B:1,
-                  edge_captured_T2_A:1, edge_captured_T2_B:1,
-                  edge_captured_T3_A:1, edge_captured_T3_B:1,
-                  edge_captured_T4_A:1, edge_captured_T4_B:1,
-                  edge_captured_T5_A:1, edge_captured_T5_B:1,
-
-                    wire_broken_T0_A:1,   wire_broken_T0_B:1,
-                    wire_broken_T1_A:1,   wire_broken_T1_B:1,
-                    wire_broken_T2_A:1,   wire_broken_T2_B:1,
-                    wire_broken_T3_A:1,   wire_broken_T3_B:1,
-                    wire_broken_T4_A:1,   wire_broken_T4_B:1,
-                    wire_broken_T5_A:1,   wire_broken_T5_B:1;
-  };
-
-  //////////////////////////////////////////////////////
-  bool     isCcpValid(          uint8_t pin );
-
-  bool     isCcpEdgeCaptured(   uint8_t timer );
-  void     ccpEdgeIsCaptured(   uint8_t timer, 
-                                   bool edge_captured );
-
-  bool     isCcpWireBroken(     uint8_t timer );
-  void     ccpWireIsBroken(     uint8_t timer,
-                                   bool wirebreak );
-
-  uint32_t ccpPinMux(           uint8_t pin );
-  void     ccpTicksIsr(          struct CcpTicks* Ccp );
-  isrPtr   dispatchCcpTicksIsr( uint8_t timer );
-  void     attachCcpTicks(      uint8_t timer,
-                                 struct CcpTicks* Ccp );
+  bool     isCcpValid(            uint8_t  pin ); /////////////////
+  uint32_t ccpPinMux(             uint8_t  pin );
+  void     attachCcpTicks(        uint8_t  timer,
+                                  struct   CcpTicks* Ccp );
+  isrPtr   lookupCcpTicksIsr(     uint8_t  timer );
+  void           ccpTicksIsr(     struct   CcpTicks* Ccp );
+  void attachUserCcpTicksIsr(     struct   CcpTicks* CcpTick, userCcpTicksArgsIsrPtr userCcpTicksIsr );
+  void noUserCcpTicksIsr(         void*    CcpTicksArg,       bool     digital_read_arg, 
+                                                              uint32_t capture_ticks_arg );
 
   void dispatchCcpTicksIsr_0A ( void );
   void dispatchCcpTicksIsr_0B ( void );
@@ -108,8 +70,43 @@ namespace roveware
   void dispatchCcpTicksIsr_4B ( void );
   void dispatchCcpTicksIsr_5A ( void );
   void dispatchCcpTicksIsr_5B ( void );
-  
+
   void ccpWireBreaksIsr(        void );
+
+  struct CcpHardware ////////////////////
+  {
+    volatile uint32_t CCP_PIN_MUX;
+    volatile uint32_t PORT_BASE_ADDRESS;
+    volatile uint32_t PIN_BIT_MASK; };
+
+  struct CcpTicks ///////////////////////////////////////////
+  {  
+    struct  CcpHardware Hw;
+    struct  Timer       Timer;
+    uint8_t             timer;
+
+    volatile int        priority;
+
+    RoveRingBuff < uint32_t, 64 > PulseWidthsHigh;
+    RoveRingBuff < uint32_t, 64 > PulseWidthsLow; 
+    
+    userCcpTicksArgsIsrPtr userCcpTicksIsr = noUserCcpTicksIsr; };
+
+  struct CcpWireBreak ///////////////////////////////////////
+  {
+    volatile bool wire_broken_T0_A:1,   wire_broken_T0_B:1,
+                  wire_broken_T1_A:1,   wire_broken_T1_B:1,
+                  wire_broken_T2_A:1,   wire_broken_T2_B:1,
+                  wire_broken_T3_A:1,   wire_broken_T3_B:1,
+                  wire_broken_T4_A:1,   wire_broken_T4_B:1,
+                  wire_broken_T5_A:1,   wire_broken_T5_B:1,
+                  
+                  edge_captured_T0_A:1, edge_captured_T0_B:1,
+                  edge_captured_T1_A:1, edge_captured_T1_B:1,
+                  edge_captured_T2_A:1, edge_captured_T2_B:1,
+                  edge_captured_T3_A:1, edge_captured_T3_B:1,
+                  edge_captured_T4_A:1, edge_captured_T4_B:1,
+                  edge_captured_T5_A:1, edge_captured_T5_B:1; };
 
 }// end namespace roveware ///////////////////////////////
 

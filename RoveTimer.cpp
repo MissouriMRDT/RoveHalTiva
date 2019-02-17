@@ -22,7 +22,7 @@
 
 #include <stdint.h> // wtf? => must be included BEFORE driverlib/timer.h ?
 
-#include "Energia.h"
+#include "Energia.h" /* Todo => reeally ? ...allllthese include ? */
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
 #include "inc/hw_ints.h"
@@ -35,77 +35,89 @@
 #include "driverlib/sysctl.h"
 #include "tm4c1294ncpdt.h"
 
-/////////////////////////////////////////////////////////////////////////////////
-uint32_t TimerValueGet24( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB )
+uint32_t TimerValueGet24( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB ) ///////////////////////
 { 
-  if (      TIMER_CHANNEL_AB == TIMER_A ) {
-    return (uint32_t)( ( ( HWREG( TIMER_BASE_ADDRESS + TIMER_O_TAPS ) << 16 ) & 0x00FF0000 )
+  if (      TIMER_CHANNEL_AB == TIMER_A ) 
+  { return (uint32_t)( ( ( HWREG( TIMER_BASE_ADDRESS + TIMER_O_TAPS ) << 16 ) & 0x00FF0000 )
                    + (   ( HWREG( TIMER_BASE_ADDRESS + TIMER_O_TAR  )       ) & 0x0000FFFF ) ); }
 
-  else if ( TIMER_CHANNEL_AB == TIMER_B ) { 
-    return (uint32_t)( ( ( HWREG( TIMER_BASE_ADDRESS + TIMER_O_TBPS ) << 16 ) & 0x00FF0000 )
+  else if ( TIMER_CHANNEL_AB == TIMER_B ) 
+  { return (uint32_t)( ( ( HWREG( TIMER_BASE_ADDRESS + TIMER_O_TBPS ) << 16 ) & 0x00FF0000 )
                    + (   ( HWREG( TIMER_BASE_ADDRESS + TIMER_O_TBR  )       ) & 0x0000FFFF ) ); }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-void TimerConfigure16AB( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB, uint32_t TIMER_CONFIGURE )
+void TimerConfigure24AB( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB, uint32_t TIMER_CONFIGURE )
 {
-  if(      TIMER_CHANNEL_AB  == TIMER_A ) {
-    HWREG( TIMER_BASE_ADDRESS + TIMER_O_CTL  ) &=  ~( TIMER_CTL_TAEN );
+  if(      TIMER_CHANNEL_AB  == TIMER_A ) 
+  { HWREG( TIMER_BASE_ADDRESS + TIMER_O_CTL  ) &=  ~( TIMER_CTL_TAEN );
     HWREG( TIMER_BASE_ADDRESS + TIMER_O_CFG  )  =     TIMER_CFG_SPLIT_PAIR           >> 24;
     HWREG( TIMER_BASE_ADDRESS + TIMER_O_TAMR )  = ((( TIMER_CONFIGURE & 0x000F0000 ) >> 4 )
                                                   | ( TIMER_CONFIGURE & 0xFF ) // Todo => 0x000000FF
                                                   |   TIMER_TAMR_TAPWMIE ); }
-  else if( TIMER_CHANNEL_AB == TIMER_B )  {
-    HWREG( TIMER_BASE_ADDRESS + TIMER_O_CTL  ) &=   ~( TIMER_CTL_TBEN );
+  else if( TIMER_CHANNEL_AB == TIMER_B )  
+  { HWREG( TIMER_BASE_ADDRESS + TIMER_O_CTL  ) &=   ~( TIMER_CTL_TBEN );
     HWREG( TIMER_BASE_ADDRESS + TIMER_O_CFG  )  =      TIMER_CFG_SPLIT_PAIR           >> 24;
     HWREG( TIMER_BASE_ADDRESS + TIMER_O_TBMR )  =  ((( TIMER_CONFIGURE & 0x00F00000 ) >> 8 ) 
                                                   | (( TIMER_CONFIGURE                >> 8 ) & 0xFF ) // Todo => 0x000000FF
                                                   |    TIMER_TBMR_TBPWMIE ); }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace roveware
+namespace roveware /////////////////////////////////////////////////////////////////////////////////////////
 {
-  //////////////////////////////
   struct Timer* Timers[16] = {};
 
-  //////////////////////////////////////////////////////////////////////
-  bool isTimerValid( uint8_t timer )
-  {          return (        timer >  INVALID ) and ( timer <= MAX_TIMER); 
+  bool isTimerValid( uint8_t timer ) ////////////////////////////////////////
+  {          return (        timer >  INVALID ) and ( timer <= MAX_TIMER); }
+
+  bool isPeriodTicks24Valid( uint32_t period_ticks_24 ) /////////////
+  {                            return period_ticks_24 <= 0x00FFFFFF; }
+
+  void startTimer(    uint32_t TIMER_BASE_ADDRESS, ////////////////////////////////////////////////////////
+                      uint32_t TIMER_CHANNEL_AB,
+                      uint32_t TIMER_INTERRUPT_SOURCE,
+                      uint32_t TIMER_PERIOD_TICKS_24 )
+  { if( isPeriodTicks24Valid ( TIMER_PERIOD_TICKS_24 ) )
+    { stopTimer(   TIMER_BASE_ADDRESS, TIMER_INTERRUPT_SOURCE );
+      loadTimer(   TIMER_BASE_ADDRESS, TIMER_CHANNEL_AB, TIMER_INTERRUPT_SOURCE, TIMER_PERIOD_TICKS_24 );
+      enableTimer( TIMER_BASE_ADDRESS, TIMER_INTERRUPT_SOURCE ); }
   }
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////
-  void startTimer( uint32_t TIMER_BASE_ADDRESS,
-                   uint32_t TIMER_CHANNEL_AB,
-                   uint32_t TIMER_INTERRUPT_SOURCE,
-                   uint32_t TIMER_PERIOD_TICKS_24 )
-  {
-    TimerIntDisable(  TIMER_BASE_ADDRESS, TIMER_INTERRUPT_SOURCE );
-    TimerPrescaleSet( TIMER_BASE_ADDRESS, TIMER_CHANNEL_AB, ( TIMER_PERIOD_TICKS_24 >> 16 ) & 0x000000FF);
-    TimerLoadSet(     TIMER_BASE_ADDRESS, TIMER_CHANNEL_AB, ( TIMER_PERIOD_TICKS_24 )       & 0x0000FFFF);
-    TimerIntClear(    TIMER_BASE_ADDRESS, TIMER_INTERRUPT_SOURCE );
-    TimerIntEnable(   TIMER_BASE_ADDRESS, TIMER_INTERRUPT_SOURCE );
+  void loadTimer(     uint32_t TIMER_BASE_ADDRESS, ////////////////////////////////////////////////////////
+                      uint32_t TIMER_CHANNEL_AB,
+                      uint32_t TIMER_INTERRUPT_SOURCE,
+                      uint32_t TIMER_PERIOD_TICKS_24 )
+  { if( isPeriodTicks24Valid ( TIMER_PERIOD_TICKS_24 ) )
+    { TimerPrescaleSet( TIMER_BASE_ADDRESS, TIMER_CHANNEL_AB, ( TIMER_PERIOD_TICKS_24 >> 16 ) & 0x000000FF);
+      TimerLoadSet(     TIMER_BASE_ADDRESS, TIMER_CHANNEL_AB, ( TIMER_PERIOD_TICKS_24 )       & 0x0000FFFF); }
   }
 
-  ////////////////////////////////////////////////////////////////
-  void stopTimer( uint32_t TIMER_BASE_ADDRESS,
+  void enableTimer(         uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_INTERRUPT_SOURCE ) //
+  { TimerIntEnable(                  TIMER_BASE_ADDRESS,          TIMER_INTERRUPT_SOURCE ); }
+
+  void captureBothEdges(    uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB ) /////////////////////////
+  { TimerControlEvent(               TIMER_BASE_ADDRESS,          TIMER_CHANNEL_AB, TIMER_EVENT_BOTH_EDGES ); }
+
+  void captureRisingEdges(  uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB ) ////////////////////////
+  { TimerControlEvent(               TIMER_BASE_ADDRESS,          TIMER_CHANNEL_AB, TIMER_EVENT_POS_EDGE ); }
+
+  void captureFallingEdges( uint32_t TIMER_BASE_ADDRESS, uint32_t TIMER_CHANNEL_AB ) ////////////////////////
+  { TimerControlEvent(               TIMER_BASE_ADDRESS,          TIMER_CHANNEL_AB, TIMER_EVENT_NEG_EDGE ); }
+
+  void stopTimer( uint32_t TIMER_BASE_ADDRESS, //////////////////
                   uint32_t TIMER_INTERRUPT_SOURCE )
   {
     TimerIntClear(   TIMER_BASE_ADDRESS, TIMER_INTERRUPT_SOURCE );
     TimerIntDisable( TIMER_BASE_ADDRESS, TIMER_INTERRUPT_SOURCE );
   }
 
-  ///////////////////////////////////////////////////////////////
   void attachTimerHardware( uint8_t timer, struct Timer* Timer )
   {                        Timers [ timer - 1 ] =        Timer; }
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
-  void setupTimer( uint32_t TIMER_CLOCK_SOURCE,
-                   uint32_t TIMER_CONFIGURE,
-                   uint32_t TIMER_PERIPHERAL,
-                   uint32_t TIMER_BASE_ADDRESS,
-                   uint32_t TIMER_CHANNEL_AB )
+  void setupTimerHardware( uint32_t TIMER_CLOCK_SOURCE, ///////////////////////////////////////////////
+                           uint32_t TIMER_CONFIGURE,
+                           uint32_t TIMER_PERIPHERAL,
+                           uint32_t TIMER_BASE_ADDRESS,
+                           uint32_t TIMER_CHANNEL_AB )
   {
             SysCtlPeripheralEnable( TIMER_PERIPHERAL );
     while( !SysCtlPeripheralReady(  TIMER_PERIPHERAL ) )
@@ -114,12 +126,11 @@ namespace roveware
     TimerClockSourceSet( TIMER_BASE_ADDRESS, TIMER_CLOCK_SOURCE );
 
     if ( TIMER_CHANNEL_AB == TIMER_BOTH ){ TimerConfigure(     TIMER_BASE_ADDRESS, TIMER_CONFIGURE ); }
-    else {                                 TimerConfigure16AB( TIMER_BASE_ADDRESS, TIMER_CHANNEL_AB, 
+    else {                                 TimerConfigure24AB( TIMER_BASE_ADDRESS, TIMER_CHANNEL_AB, 
                                                                                    TIMER_CONFIGURE ); }
   }
 
-  //////////////////////////////////////////////////////////////////////////
-  void attachTimerIsr( uint32_t TIMER_BASE_ADDRESS,
+  void attachTimerIsr( uint32_t TIMER_BASE_ADDRESS, ////////////////////////
                        uint32_t TIMER_CHANNEL_AB,
                        uint32_t TIMER_INTERRUPT_SOURCE,
                        uint32_t TIMER_INTERRUPT,
@@ -135,8 +146,7 @@ namespace roveware
     IntMasterEnable(); 
   }
 
-  ///////////////////////////////////////////////////////////////////////////
-  void timerIsrPeriodic( struct Timer* Timer )
+  void timerIsrPeriodic( struct Timer* Timer ) //////////////////////////////
   {
     TimerIntClear(   Timer->Hw.TIMER_BASE_ADDRESS, Timer->interrupt_source );
     TimerIntDisable( Timer->Hw.TIMER_BASE_ADDRESS, Timer->interrupt_source );
@@ -147,8 +157,7 @@ namespace roveware
     TimerIntEnable( Timer->Hw.TIMER_BASE_ADDRESS, Timer->interrupt_source );
   }
 
-  //////////////////////////////////////////////////////////////////////////////////
-  uint8_t pinToTimer( uint8_t pin )
+  uint8_t pinToTimer( uint8_t pin ) ////////////////////////////////////////////////
   {
           if( ( pin == PD_0 ) ||( pin == PA_0 ) ||( pin == PL_4 ) ) { return T0_A; }
     else  if( ( pin == PD_1 ) ||( pin == PA_1 ) ||( pin == PL_5 ) ) { return T0_B; }
@@ -165,8 +174,7 @@ namespace roveware
     else                                                            { return    0; }
   }
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
-  struct TimerHardware timerHardware ( uint8_t timer )
+  struct TimerHardware lookupTimerHardware ( uint8_t timer ) ////////////////////////////////////////
   {
          if ( timer == T0_A ) { return { SYSCTL_PERIPH_TIMER0, TIMER0_BASE, TIMER_A, INT_TIMER0A }; }
     else if ( timer == T0_B ) { return { SYSCTL_PERIPH_TIMER0, TIMER0_BASE, TIMER_B, INT_TIMER0B }; }
@@ -184,11 +192,10 @@ namespace roveware
     else if ( timer == T6_B ) { return { SYSCTL_PERIPH_TIMER6, TIMER6_BASE, TIMER_B, INT_TIMER6B }; }
     else if ( timer == T7_A ) { return { SYSCTL_PERIPH_TIMER7, TIMER7_BASE, TIMER_A, INT_TIMER7A }; }
     else if ( timer == T7_B ) { return { SYSCTL_PERIPH_TIMER7, TIMER7_BASE, TIMER_B, INT_TIMER7B }; }
-    else                      { return {                    0,           0,       0,           0 }; }
+    else                      { return { 0,                    0,           0,       0           }; }
   }
 
-  ///////////////////////////////////////////////////////////////////
-  isrPtr dispatchTimerIsrPeriodic( uint8_t timer )
+  isrPtr lookupTimerIsrPeriodic( uint8_t timer ) ////////////////////
   {
          if ( timer == T0_A ) { return dispatchTimerIsrPeriodic_0A; }
     else if ( timer == T0_B ) { return dispatchTimerIsrPeriodic_0B; }
@@ -209,7 +216,6 @@ namespace roveware
     else                      { return                           0; }
   }
 
-  /////////////////////////////////////////////////////////////////////////////////////
   void dispatchTimerIsrPeriodic_0A ( void ) { timerIsrPeriodic( Timers[ T0_A - 1 ] ); }
   void dispatchTimerIsrPeriodic_0B ( void ) { timerIsrPeriodic( Timers[ T0_B - 1 ] ); }
   void dispatchTimerIsrPeriodic_1A ( void ) { timerIsrPeriodic( Timers[ T1_A - 1 ] ); }
@@ -226,5 +232,4 @@ namespace roveware
   void dispatchTimerIsrPeriodic_6B ( void ) { timerIsrPeriodic( Timers[ T6_B - 1 ] ); }
   void dispatchTimerIsrPeriodic_7A ( void ) { timerIsrPeriodic( Timers[ T7_A - 1 ] ); }
   void dispatchTimerIsrPeriodic_7B ( void ) { timerIsrPeriodic( Timers[ T7_B - 1 ] ); }
-
-}// end namespace roveware /////////////////////////////////////////////////////////////////////////////
+}// end namespace

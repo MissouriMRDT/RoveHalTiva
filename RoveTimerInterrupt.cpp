@@ -8,8 +8,7 @@
 
 #include <stdint.h> // wtf? => must be included BEFORE driverlib/timer.h ?
 
-/* Todo? */
-#include "inc/hw_memmap.h"
+#include "inc/hw_memmap.h" /* Todo? */
 #include "inc/hw_types.h"
 #include "inc/hw_ints.h"
 #include "inc/hw_nvic.h"
@@ -20,61 +19,53 @@
 #include "driverlib/sysctl.h"
 #include "tm4c1294ncpdt.h"
 
-///////////////////////////////////////////////////////////////////////////////////
-void RoveTimerInterrupt::lookupTimerHardware( uint8_t timer )
-{         this->timer =                               timer;
+void RoveTimerInterrupt::setupTimer( uint8_t timer ) ///////////////////////////////
+{         this->timer =                      timer;
   if(   ( this->timer %  2) == 0 ){
           this->Timer.interrupt_source = TIMER_TIMB_TIMEOUT; }
   else {  this->Timer.interrupt_source = TIMER_TIMA_TIMEOUT; }
-          this->Timer.Hw       = roveware::timerHardware(            this->timer );
-          this->Timer.timerIsr = roveware::dispatchTimerIsrPeriodic( this->timer );
-          roveware::attachTimerHardware(                             this->timer, 
-                                                          &( this->Timer ) );
+          this->Timer.Hw       = roveware::lookupTimerHardware(    this->timer );
+          this->Timer.timerIsr = roveware::lookupTimerIsrPeriodic( this->timer );
+          roveware::attachTimerHardware(                           this->timer, 
+                                                                &( this->Timer ) );
 }
 
-//////////////////////////////////////////////////////////////////////////////////////
-void RoveTimerInterrupt::attachMicros( void( *userFunction )( void ), 
+void RoveTimerInterrupt::attachMicros( void( *userFunction )( void ), ////////////////
                                       uint8_t timer, int period_micros, int priority )
 { if ( roveware::isTimerValid(                timer ) )
-  { this->lookupTimerHardware(                timer );
+  { this->setupTimer(                         timer );
 
     this->Timer.period_ticks = period_micros * roveware::PIOSC_TICKS_PER_MICRO;
     this->Timer.userFunction = userFunction;
 
-    uint32_t TIMER_CHANNEL_AB;
-    if ( ( this->timer %  2) == 0 ){ TIMER_CHANNEL_AB = TIMER_B; }
-    else                           { TIMER_CHANNEL_AB = TIMER_A; }
+    roveware::setupTimerHardware( roveware::TIMER_USE_PIOSC,
+                                  roveware::TIMER_USE_PERIODIC_UP_AB,
+                                  this->Timer.Hw.TIMER_PERIPHERAL,
+                                  this->Timer.Hw.TIMER_BASE_ADDRESS,
+                                  this->Timer.Hw.TIMER_CHANNEL_AB );
 
-    roveware::setupTimer(     roveware::TIMER_USE_PIOSC,
-                              roveware::TIMER_USE_PERIODIC_UP_AB,
-                              this->Timer.Hw.TIMER_PERIPHERAL,
-                              this->Timer.Hw.TIMER_BASE_ADDRESS,
-                              TIMER_CHANNEL_AB );
-
-    roveware::attachTimerIsr( this->Timer.Hw.TIMER_BASE_ADDRESS,
-                              this->Timer.Hw.TIMER_CHANNEL_AB,
-                              this->Timer.interrupt_source,
-                              this->Timer.Hw.TIMER_INTERRUPT,
-                              this->Timer.timerIsr, 
-                              priority ); }
+    roveware::attachTimerIsr(     this->Timer.Hw.TIMER_BASE_ADDRESS,
+                                  this->Timer.Hw.TIMER_CHANNEL_AB,
+                                  this->Timer.interrupt_source,
+                                  this->Timer.Hw.TIMER_INTERRUPT,
+                                  this->Timer.timerIsr, 
+                                  priority ); }
+    this->stop();
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RoveTimerInterrupt::attachMillis( void( *userFunction )( void ), uint8_t timer,  int period_millis, int priority )
+void RoveTimerInterrupt::attachMillis( void( *userFunction )( void ), uint8_t timer,  int period_millis, int priority ) //
 {  this->attachMicros(                        userFunction,                   timer, 1000*period_millis,     priority ); }
 
-///////////////////////////////////////////////////////////////////
-void RoveTimerInterrupt::start()
-{  if ( roveware::isTimerValid( this->timer ) ){
-        roveware::startTimer(   this->Timer.Hw.TIMER_BASE_ADDRESS,
+void RoveTimerInterrupt::start() /////////////////////////////////
+{  if ( roveware::isTimerValid( this->timer ) )
+   {    roveware::startTimer(   this->Timer.Hw.TIMER_BASE_ADDRESS,
                                 this->Timer.Hw.TIMER_CHANNEL_AB,
                                 this->Timer.interrupt_source,
                                 this->Timer.period_ticks ); } 
 }
 
-//////////////////////////////////////////////////////////////////
-void RoveTimerInterrupt::stop()
-{  if ( roveware::isTimerValid( this->timer ) ){
-        roveware::stopTimer(    this->Timer.Hw.TIMER_BASE_ADDRESS,
+void RoveTimerInterrupt::stop() //////////////////////////////////
+{  if ( roveware::isTimerValid( this->timer ) )
+  {     roveware::stopTimer(    this->Timer.Hw.TIMER_BASE_ADDRESS,
                                 this->Timer.interrupt_source ); } 
 }
