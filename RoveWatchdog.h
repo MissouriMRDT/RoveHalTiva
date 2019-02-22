@@ -9,18 +9,14 @@
 
 #include <stdint.h>
 
-#define WATCHDOG_0    0x0
-#define WATCHDOG_1    0x1
-
 class RoveWatchdog
 {
 public:
 
-  void begin( void(*userFunction)(void), int timeout_millis, uint32_t watchdog=WATCHDOG_1 ); 
+  void attach( void(*userFunction)(void) ); 
+  void start(  int   timeout_millis, int estops_before_board_reset=5 );
+  void stop();
   void clear();
-
-private:
-   uint32_t watchdog_base;
 };
 
 #endif // ROVE_WATCHDOG_H

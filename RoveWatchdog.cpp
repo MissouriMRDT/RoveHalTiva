@@ -3,48 +3,51 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "RoveWatchdog.h"
+#include "RoveTimer.h"
 
 #include "inc/hw_memmap.h"
+#include "inc/hw_ints.h"
 
 #include "driverlib/sysctl.h"
+#include "driverlib/interrupt.h"
 #include "driverlib/watchdog.h"
 #include "driverlib/rom_map.h"
 
-//#define WATCHDOG0_BASE          0x40000000  // Watchdog0
-//#define WATCHDOG1_BASE          0x40001000  // Watchdog1
-// todo, beware of WATCHDOG0_BASE because we think it might conflict with Energia usage of SYSCTL_PERIPH_WTIMER0 ?
-// Enable Watchdog Timer 1; supposedly timer 0 has a conflict in Energia, unconfirmed
+static roveware::isrPtr userIsr;
+static void watchdogIsr();
 
-// 5,500,000 => 6,000,000
-// 500*120000000/1000 Why off by 10?
+static int  isr_without_user_clear_count  = 0;
+static int  isr_before_board_reset_count = 0;
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//void RoveWatchdog::begin(void(*watchdogFunction)(void), unsigned int timeout_millis, unsigned int WatchdogTimerModule=WATCHDOG_1)
-
-void RoveWatchdog::begin( void(*userFunction)(void), int timeout_millis, uint32_t watchdog )
-{
-  if(      watchdog     == WATCHDOG_0)
-  {  this->watchdog_base = WATCHDOG0_BASE;
-    SysCtlPeripheralEnable( SYSCTL_PERIPH_WDOG0 ); } 
-
-  else if( watchdog_base == WATCHDOG_1)
-  {
-     this->watchdog_base = WATCHDOG1_BASE;
-    SysCtlPeripheralEnable( SYSCTL_PERIPH_WDOG1 );
-  }
-
-  WatchdogUnlock(       this->watchdog_base );
-  WatchdogReloadSet(    this->watchdog_base, (120000000 / 1000) * timeout_millis );
-  WatchdogIntRegister(  this->watchdog_base, userFunction);
-  WatchdogIntEnable(    this->watchdog_base);
-  WatchdogResetDisable( this->watchdog_base );
-  WatchdogEnable(       this->watchdog_base );
+//////////////////////////////////////////////////////////
+void RoveWatchdog::attach( void(*userFunction)(void) )
+{         SysCtlPeripheralEnable( SYSCTL_PERIPH_WDOG0 );
+  while( !SysCtlPeripheralReady(  SYSCTL_PERIPH_WDOG0 ) )
+  {   }; 
+  userIsr = userFunction;
+  WatchdogUnlock( WATCHDOG0_BASE );
 }
 
-//////////////////////////////////
+void RoveWatchdog::start( int timeout_millis, int estops_before_board_reset ) /////////////////////
+{ isr_before_board_reset_count = estops_before_board_reset;
+  WatchdogIntRegister(  WATCHDOG0_BASE, watchdogIsr);
+  WatchdogReloadSet(    WATCHDOG0_BASE, 1000 * roveware::SYSCLOCK_TICKS_PER_MICRO  * timeout_millis );
+  WatchdogResetEnable(  WATCHDOG0_BASE );
+  WatchdogIntEnable(    WATCHDOG0_BASE );
+  WatchdogEnable(       WATCHDOG0_BASE );
+  WatchdogIntClear(     WATCHDOG0_BASE ); 
+}
 
-void RoveWatchdog::clear()
-{
-  WatchdogIntClear(this->watchdog_base);
+void RoveWatchdog::stop() /////////////////
+{ IntDisable( INT_WATCHDOG_TM4C129 );
+  WatchdogResetDisable( WATCHDOG0_BASE ); }
+
+void RoveWatchdog::clear() //////////
+{ WatchdogIntClear( WATCHDOG0_BASE ); 
+  isr_without_user_clear_count = 0; }
+
+void watchdogIsr() ///////////////////////////////////////////////////
+{ if( isr_without_user_clear_count++ <= isr_before_board_reset_count )
+  { WatchdogIntClear( WATCHDOG0_BASE ); 
+    userIsr(); }
 }
