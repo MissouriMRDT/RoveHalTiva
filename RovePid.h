@@ -2,6 +2,8 @@
 // MRDT 2019 => Tiva C 1294/129E Launchpad RovePid Module
 /////////////////////////////////////////////////////////////////////////////
 
+// See => http://brettbeauregard.com/blog/2011/04/improving-the-beginners-pid-introduction/
+
 #ifndef ROVE_PID_H
 #define ROVE_PID_H
 
