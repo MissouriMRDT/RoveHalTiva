@@ -33,9 +33,11 @@ void RovePidInts::clear()
 }
 
 //////////////////////////////////////////////////////////////////////////
-int RovePidInts::incrementPid( int setpoint, int feedback )
+int RovePidInts::incrementPid( int setpoint, int feedback, int tolerance )
 {
   int error              = setpoint  - feedback;
+  if(abs(error) <= tolerance)
+    return 0;
   int this_time          = micros();
   int time_delta         = this_time - this->last_time;
   int feedback_delta     = feedback  - this->last_feedback;
@@ -59,7 +61,7 @@ int RovePidInts::incrementPid( int setpoint, int feedback )
   this->last_time        = this_time;
   this->last_feedback    = feedback;
   this->integral         = integral;
-  
+
   return output;
 }
 
@@ -91,13 +93,16 @@ void RovePidFloats::clear()
 }
 
 //////////////////////////////////////////////////////////////////////////
-float RovePidFloats::incrementPid( float setpoint, float feedback )
+float RovePidFloats::incrementPid( float setpoint, float feedback, float tolerance )
 {
-  float error              = setpoint  - feedback;
-  float this_time          = micros() / 1000000.0;
+
+  float error              = (setpoint  - feedback)/1000;
+  float this_time = micros() / 1000000.0;
   float time_delta         = this_time - this->last_time;
   float feedback_delta     = feedback  - this->last_feedback;
 
+  if(abs(error) <= tolerance)
+    return 0;
  // Serial.print("time_delta: "); Serial.println( time_delta );
   
   float     proportional = this->Kp * error;
@@ -110,7 +115,7 @@ float RovePidFloats::incrementPid( float setpoint, float feedback )
 
   float     derivative   = ( this->Kd * feedback_delta ) / time_delta;
 
-  float     output       = proportional + integral - derivative;
+  float     output       = (proportional + integral - derivative);
   if(       output       > this->max_output )
   {         output       = this->max_output; } 
   else if(  output       < this->min_output )
@@ -119,6 +124,5 @@ float RovePidFloats::incrementPid( float setpoint, float feedback )
   this->last_time        = this_time;
   this->last_feedback    = feedback;
   this->integral         = integral;
-  
   return output;
 }

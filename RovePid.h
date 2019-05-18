@@ -15,7 +15,7 @@ public:
   void attach( int min_output, int max_output, int Kp, int Ki, int Kd );
   void set(    int min_output, int max_output, int Kp, int Ki, int Kd );
   void clear();
-  int  incrementPid( int setpoint, int feedback );
+  int  incrementPid( int setpoint, int feedback, int tolerance );
 
 //private:
 
@@ -39,7 +39,7 @@ public:
   void  attach( float min_output, float max_output, float Kp, float Ki, float Kd );
   void  set(    float min_output, float max_output, float Kp, float Ki, float Kd );
   void  clear();
-  float incrementPid( float setpoint, float feedback );
+  float incrementPid( float setpoint, float feedback, float tolerance );
 
 //private:
 
