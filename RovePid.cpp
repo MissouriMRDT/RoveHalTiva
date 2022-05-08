@@ -96,8 +96,8 @@ void RovePidFloats::clear()
 float RovePidFloats::incrementPid( float setpoint, float feedback, float tolerance )
 {
 
-  float error              = (setpoint  - feedback)/1000;
-  float this_time = micros() / 1000000.0;
+  float error              = (setpoint  - feedback);
+  float this_time = micros();
   float time_delta         = this_time - this->last_time;
   float feedback_delta     = feedback  - this->last_feedback;
 
